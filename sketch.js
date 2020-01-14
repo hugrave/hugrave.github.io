@@ -8,18 +8,18 @@ function setup() {
   console.log(Object.keys(data));
   // wordColors = ['#ff4000', '#ffbf00', '#ffff00', '#40ff00' ,'#00ffff', '#0080ff', '#0000ff', '#2E2B5F', '#8000ff', '#ff00ff'];
   wordColors = [
-    [255, 64, 0],
-    [255, 191, 0],
-    [255, 255, 0],
-    [64, 255, 0],
-    [0, 255, 255],
-    [0, 128, 255],
-    [0, 0, 255],
-    [46, 43, 95],
-    [128, 0, 255],
-    [255, 0, 255]
+    [141, 211, 199],
+    [255, 255, 179],
+    [190, 186, 218],
+    [251, 128, 114],
+    [128, 177, 211],
+    [253, 180, 98],
+    [179, 222, 105],
+    [252, 205, 229],
+    [217, 217, 217],
+    [188, 128, 189]
   ];
-  
+
   wordFilterSlider = createSlider(10, 100, 20, 1);
   wordFilterSlider.position(10, 40);
 
@@ -41,20 +41,20 @@ function getRGBA(colorIndex, alpha = 1) {
 }
 
 function draw() {
-  
+
   sortedWordsByLabel = filterNumberOfWords(wordFilterSlider.value())
   numWords = sortedWordsByLabel.length;
   canvasWidth = window.innerWidth;
   canvasHeight = window.innerHeight;
   createCanvas(canvasWidth, canvasHeight + 30);
   background(240);
-  
+
   textSize(16)
   noStroke()
   fill("black")
-  let title = 'Scroll to modify the number of words'
-  text(title, textWidth(title)/2 + 10, 30)
-  
+  const title = 'Scroll to modify the number of words'
+  text(title, textWidth(title) / 2 + 10, 30)
+
   noStroke();
   strokeWeight(1);
   fill('white');
@@ -66,10 +66,10 @@ function draw() {
   communityRadiusMin = radius / 7;
   communityRadiusMax = radius / 4;
   circle(centerX, centerY, radius * 2);
-  drawWords();
   let wordCommunityBoundaries = drawWordCommunities();
   communityCenters = drawInfluencerCommunities(wordCommunityBoundaries);
   drawWordBelongness();
+  drawWords();
   drawTopInfluencers();
 }
 
@@ -162,6 +162,8 @@ function getWordBelongness(words, userWords, userLabels, threshold) {
 
 function drawWords() {
   strokeWeight(1);
+  let mouseMinDistance = 100;
+  let wordLabelHover, x, y;
   for (let i = 0; i <= 360; i += 360 / numWords) {
     let x1 = (radius + epsilon) * cos(radians(i)) + centerX;
     let y1 = (radius + epsilon) * sin(radians(i)) + centerY;
@@ -171,23 +173,48 @@ function drawWords() {
     stroke(getRGBA(wordLabel.label));
     line(x1, y1, x2, y2);
     // Adding interactivity
-    const m = (y2 - y1) / (x2 - x1)
-    const q = y2 - m * x2
-    const lineMargin = 5
-    if (mouseX >= min(x1, x2) && mouseX <= max(x2, x1) &&
-      mouseY >= min(y1, y2) && mouseY <= max(y2, y1) &&
-      m * mouseX - mouseY + q <= lineMargin) {
+    //const m = (y2 - y1) / (x2 - x1)
+    //const q = y2 - m * x2
+    //const lineMargin = 5
+    const midX = radius * cos(radians(i)) + centerX;
+    const midY = radius * sin(radians(i)) + centerY;
+    if (dist(mouseX, mouseY, midX, midY) < mouseMinDistance && 
+       dist(mouseX, mouseY, centerX, centerY) > radius - 20 &&
+       dist(mouseX, mouseY, centerX, centerY) < radius + 20) {
+      mouseMinDistance = dist(mouseX, mouseY, midX, midY)
+      wordLabelHover = wordLabel
+      x = Math.abs(x2 - x1) / 2 + min(x1, x2)
+      y = Math.abs(y2 - y1) / 2 + min(y1, y2)
+    }
+    
+    /**
+    if (//mouseX >= min(x1, x2) && mouseX <= max(x2, x1) &&
+      //mouseY >= min(y1, y2) && mouseY <= max(y2, y1) &&
+      //m * mouseX - mouseY + q <= lineMargin) {
+      dist(x1, y1, mouseX, mouseY)){
       const x = Math.abs(x2 - x1) / 2 + min(x1, x2)
       const y = Math.abs(y2 - y1) / 2 + min(y1, y2)
       const text_width = textWidth(wordLabel.word) + 30
       fill("white")
-      rect(x-text_width/2, y-20, text_width, 30)
+      rect(x - text_width / 2, y - 20, text_width, 30)
       textSize(16)
       stroke('black')
       fill(getRGBA(wordLabel.label))
       text(wordLabel.word, x, y)
     }
+    **/
   }
+  if (wordLabelHover) {
+    const text_width = textWidth(wordLabelHover.word) + 30
+    fill("white")
+    stroke(getRGBA(wordLabelHover.label))
+    rect(x - text_width / 2, y - 20, text_width, 30, 20)
+    textSize(16)
+    stroke('black')
+    fill(getRGBA(wordLabelHover.label))
+    text(wordLabelHover.word, x, y)
+  }
+  
 }
 
 function drawWordCommunities() {
@@ -195,7 +222,7 @@ function drawWordCommunities() {
   strokeWeight(2);
   let previousLabel = -1;
   for (let i = 0; i <= 360; i += 360 / numWords) {
-    let wordLabel = sortedWordsByLabel[int(i / (360 / (numWords-1)))];
+    let wordLabel = sortedWordsByLabel[int(i / (360 / (numWords - 1)))];
     let label = wordLabel.label;
     if (label !== previousLabel) {
       let x1 = (radius + epsilon * 10) * cos(radians(i)) + centerX;
@@ -222,19 +249,50 @@ function drawInfluencerCommunities(wordCommunityBoundaries) {
     let centerCommunityCircleX = (radius - communityMargin - (i % 2 === 0 ? communityMargin : 0)) * cos(radians(communityMid)) + centerX;
     let centerCommunityCircleY = (radius - communityMargin - (i % 2 === 0 ? communityMargin : 0)) * sin(radians(communityMid)) + centerY;
     let communityRadius = map(aggregatedFollowersCount[i - 1], Math.min.apply(null, aggregatedFollowersCount), Math.max.apply(null, aggregatedFollowersCount), communityRadiusMin, communityRadiusMax);
-    
+
     circle(centerCommunityCircleX, centerCommunityCircleY, communityRadius * 2);
 
     communityCenters.push([centerCommunityCircleX, centerCommunityCircleY, communityRadius]);
 
     // write topics
-    const midX = radius * cos(radians(communityMid)) + centerX;
-    const midY = radius * sin(radians(communityMid)) + centerY;
-    textSize(32);
+    let midX = (radius+10) * cos(radians(communityMid)) + centerX;
+    let midY = (radius+10) * sin(radians(communityMid)) + centerY;
+    let rotationAngle = atan((midY - centerY) / (midX - centerX))
+    push()
+    textSize(16);
     noStroke();
     fill('black');
     textAlign(midX > centerX ? LEFT : RIGHT);
-    text(data.topics[i - 1][0], midX, midY)
+    translate(midX, midY)
+    rotate(rotationAngle);
+    text(data.topics[i - 1][0], 0, 0);
+    pop()
+    
+    midX = (radius+10) * cos(radians(communityMid + 5)) + centerX;
+    midY = (radius+10) * sin(radians(communityMid + 5)) + centerY;
+    rotationAngle = atan((midY - centerY) / (midX - centerX))
+    push()
+    textSize(12);
+    noStroke();
+    fill('black');
+    textAlign(midX > centerX ? LEFT : RIGHT);
+    translate(midX, midY)
+    rotate(rotationAngle);
+    text(data.topics[i - 1][1], 0, 0);
+    pop()
+    
+    midX = (radius+10) * cos(radians(communityMid - 5)) + centerX;
+    midY = (radius+10) * sin(radians(communityMid - 5)) + centerY;
+    rotationAngle = atan((midY - centerY) / (midX - centerX))
+    push()
+    textSize(12);
+    noStroke();
+    fill('black');
+    textAlign(midX > centerX ? LEFT : RIGHT);
+    translate(midX, midY)
+    rotate(rotationAngle);
+    text(data.topics[i - 1][2], 0, 0);
+    pop()
   }
   return communityCenters;
 }
@@ -242,7 +300,7 @@ function drawInfluencerCommunities(wordCommunityBoundaries) {
 function drawWordBelongness() {
   strokeWeight(1);
   for (let i = 0; i <= 360; i += 360 / numWords) {
-    let word = sortedWordsByLabel[int(i / (360 / (numWords-1)))].word;
+    let word = sortedWordsByLabel[int(i / (360 / (numWords - 1)))].word;
     let communities = wordBelongness[word];
 
     let x = radius * cos(radians(i)) + centerX;
@@ -253,10 +311,10 @@ function drawWordBelongness() {
       let commCenterX = communityCenters[community][0];
       let commCenterY = communityCenters[community][1];
       let commRadius = communityCenters[community][2];
-      
-      const alpha_color = (dist(mouseX, mouseY, commCenterX, commCenterY) <= commRadius) ? 1 : 0.1
+
+      const alpha_color = (dist(mouseX, mouseY, commCenterX, commCenterY) <= commRadius) ? 1 : 0.2
       stroke(getRGBA(community, alpha_color));
-  
+
       const alpha = atan((y - commCenterY) / (x - commCenterX));
 
       var angle;
@@ -291,28 +349,56 @@ function drawTopInfluencers() {
     }
 
     const wordSizePx = wordSize / PT_CONV;
+    noStroke()
     fill('black');
     textAlign(CENTER);
     text(user, x, y + wordSizePx / 2);
     
+    textSize(7)
+    text(sortedUsersByLabel[index][1].user, x, y-13)
+    
+    textSize(7)
+    text(sortedUsersByLabel[index][2].user, x, y+20)
+    
+
   })
-  
+
   communityCenters.forEach((comm, index) => {
     let user = sortedUsersByLabel[index][0].user
     let x = comm[0];
     let y = comm[1];
     let diameter = comm[2] * 2;
-    if (dist(mouseX, mouseY, x, y) <= diameter/2) {
-      const top10Users = sortedUsersByLabel[index].slice(0,10)
+    if (dist(mouseX, mouseY, x, y) <= diameter / 2) {
+      const top10Users = sortedUsersByLabel[index].slice(0, 10)
       fill('white')
       noStroke()
-      rect(x-diameter/2-20, y-diameter/2-20, 250, 220)
-      fill('black')
+      if (x < centerX) {
+        rect(canvasWidth - 240, 70, 250, 240, 20)
+      } else {
+        rect(10, 70, 250, 240, 20)
+      }
+      //rect(x-diameter/2-20, y-diameter/2-20, 250, 220, 20)
+      fill('red')
       textSize(16)
       textAlign(LEFT)
+      if (x < centerX) {
+        text("Username", canvasWidth - 240 + 20, 90)
+        text("Followers", canvasWidth - 240 + 20 + 150, 90)
+      } else {
+        text("Username", 30, 90)
+        text("Followers", 30 + 150, 90)
+      }
+      fill('black')
       top10Users.map((u, i) => {
-        text(u.user, x-diameter/2, y-diameter/2 + i*20)
-        text(u.followers, x-diameter/2 + 150, y-diameter/2 + i*20)
+        //text(u.user, x-diameter/2, y-diameter/2 + i*20)
+        //text(u.followers, x-diameter/2 + 150, y-diameter/2 + i*20)
+        if (x < centerX) {
+          text(u.user, canvasWidth - 240 + 20, 90 + (i+1) * 20)
+          text(u.followers, canvasWidth - 240 + 20 + 150, 90 + (i+1) * 20)
+        } else {
+          text(u.user, 30, 90 + (i+1) * 20)
+          text(u.followers, 30 + 150, 90 + (i+1) * 20)
+        }
       })
     }
   })
@@ -330,8 +416,8 @@ function filterNumberOfWords(wordsPerLabel) {
       currentLabel = sortedWordsByLabelOriginal[i].label;
     }
     if (counter >= wordsPerLabel) {
-      while (i < sortedWordsByLabelOriginal.length && 
-             sortedWordsByLabelOriginal[i].label === currentLabel) {
+      while (i < sortedWordsByLabelOriginal.length &&
+        sortedWordsByLabelOriginal[i].label === currentLabel) {
         i++
       }
       if (i < sortedWordsByLabelOriginal.length)
