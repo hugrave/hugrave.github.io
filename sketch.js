@@ -21,7 +21,7 @@ function setup() {
   ];
 
   wordFilterSlider = createSlider(10, 100, 20, 1);
-  wordFilterSlider.position(10, 40);
+  wordFilterSlider.position(10, 300);
 
   word_belong_threshold = 4;
 
